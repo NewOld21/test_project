@@ -1,0 +1,193 @@
+<!Doctype html>
+<html lang="ko">
+
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css"
+            integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l"
+            crossorigin="anonymous">
+
+        <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+            integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+            crossorigin="anonymous"></script>
+
+        <link href="https://fonts.googleapis.com/css?family=Stylish&display=swap" rel="stylesheet">
+
+        <script defer src="https://use.fontawesome.com/releases/v6.4.0/js/all.js"></script>
+
+        <title>크래프톤 정글 | 나홀로 메모장</title>
+
+
+        <style type="text/css">
+            * {
+                font-family: "Stylish", sans-serif;
+            }
+
+            .wrap {
+                width: 900px;
+                margin: auto;
+            }
+
+
+            .ver{
+                background-color: gray;
+                color: aliceblue;
+            }
+        </style>
+        <script>
+            $(document).ready(function () {
+                $("#card-list").html("");
+                showMemos();
+            });
+            
+
+            function postMemo() {
+                // 1. 유저가 입력한 데이터를  가져오기
+                let title = $("#memo-title").val();
+                let content = $("#memo-content").val();
+
+                // 2. memo에 POST 방식으로 메모 생성 요청하기
+                $.ajax({
+                    type: "POST", // POST 방식으로 요청하겠다.
+                    url: "/memo", // /memo라는 url에 요청하겠다.
+                    data: { title_give: title, content_give: content}, // 데이터를 주는 방법
+                    success: function(response){ // 성공하면
+                        if (response["result"] == "success") {
+                            alert("포스팅 성공!");
+                                    // 3. 성공 시 페이지 새로고침하기
+                            window.location.reload();
+                        } else {
+                            alert("서버 오류!")
+                        }
+                    }
+                })
+            }
+
+            function showMemos() {
+                $.ajax({
+                    type: "GET",
+                    url: "/memo",
+                    success: function (response) {
+                        let memos = response["memos"];
+                        memos.sort((a, b) => b.like - a.like); // 좋아요가 높은 순으로 정렬
+                        $("#card-list").empty();
+                        for (let i = 0; i < memos.length; i++) {
+                            makeCard(memos[i]["title"], memos[i]["content"], memos[i]["like"],i);
+                        }
+                    }
+                });
+            }
+
+            function makeCard(title, content, like,num) {
+                let temp_html = `<div class="card" id="card-${num}">
+                    <div class="card-body">
+                        <div class="view">
+                            <p class="card-title">${title}</p>
+                            <p class="card-text">${content}</p>
+                            <p class="card-likes">${like}</p>
+                            <button type="button" class="edit-button btn btn-info" onclick="editMemo('${num}')">수정</button>
+                            <button type="button" class="delete-button btn btn-danger" onclick="deleteMemo('${title}')">삭제</button>
+                            <a href="#" class="link-like" onclick="likeMemo('${title}')">좋아요! <span class="icon"><i class="fas fa-thumbs-up"></i></a>
+                        </div>
+                         <div class="edit" style="display: none;">
+                            <input type="text" class="new-title" value="${title}">
+                            <p></p>
+                            <textarea class="new-text">${content}</textarea>
+                            <p></p>
+                            <button class="btn btn-success save-button" onclick="updateMemo('${num}','${title}')">저장</button>
+                        </div>
+                    </div>
+                </div>`;
+                $("#card-list").append(temp_html);
+            }
+
+
+            function editMemo(num) {
+                let card = $(`#card-${num}`);
+                card.find(".view").hide();
+                card.find(".edit").show();
+            }
+
+            function updateMemo(num,title) {
+                let card = $(`#card-${num}`);
+                let newTitle = card.find(".new-title").val().trim();
+                let newContent = card.find(".new-text").val().trim();
+
+                if (newTitle === "" || newContent === "") {
+                    alert("제목과 내용을 입력하세요.");
+                    return;
+                }
+
+                $.ajax({
+                    type: "POST",
+                    url: "/memo/update",
+                    data: { title: title, new_title: newTitle, new_content: newContent },
+                    success: function (response) {
+                        alert("수정 완료");
+                        window.location.reload();
+                    }
+                });
+            }
+
+            function deleteMemo(title) {
+                $.ajax({
+                    type: "POST",
+                    url: "/memo/delete",
+                    data: { title_give: title },
+                    success: function (response) {
+                        if (response["result"] === "success") {
+                            alert("삭제 성공!");
+                            window.location.reload();
+                        } else {
+                            alert("삭제 실패: " + response["msg"]);
+                        }
+                    }
+                });
+            }
+
+            function likeMemo(title) {
+                $.ajax({
+                    type: "POST",
+                    url: "/memo/like",
+                    data: { title_give: title },
+                    success: function (response) {
+                        if (response["result"] === "success") {
+                            window.location.reload();
+                        } else {
+                            alert("좋아요 실패: " + response["msg"]);
+                        }
+                    }
+                });
+            }
+        </script>
+
+    </head>
+
+    <body>
+        <div class="wrap">
+            <div class="jumbotron">
+                <h1 class="display-4">나홀로 링크 메모장 <span class="ver">ver2.0</span></h1>
+                <div>
+                    <div class="form-group">
+                        <input id="memo-title" class="form-control" placeholder="제목을 입력하세요">
+                    </div>
+                    <div class="form-group">
+                        <textarea id="memo-content" class="form-control" rows="2" placeholder="내용을 입력하세요"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary" onclick="postMemo()">저장하기</button>
+                </div>
+            </div>
+            
+            <div id="card-list" class="card-columns">
+                <div class="card">
+                   
+                </div>
+               
+            </div>
+        </div>
+    </body>
+
+</html>
