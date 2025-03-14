@@ -62,7 +62,11 @@ def update_memo():
     db.memos.update_one({'title': title}, {'$set': {'title': new_title, 'content': new_content}})
     return jsonify({'result': 'success'})
 
+def select() :
+     return 0
 
+def select_one() :
+     return 0
 
 if __name__ == '__main__':
    app.run('0.0.0.0',port=5000,debug=True)
